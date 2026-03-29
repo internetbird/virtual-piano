@@ -1,0 +1,49 @@
+<div class="piano-container">
+  <h1 class="title">Virtual Piano</h1>
+  <p class="subtitle">
+    Click keys or use your computer keyboard (A–L row for lower octave, Q–] for upper).
+    You can also upload a MIDI file to play.
+  </p>
+
+  <div class="controls">
+    <label class="file-button">
+      <input
+        type="file"
+        accept=".mid,.midi,audio/midi"
+        (change)="onFileSelected($event)"
+      />
+      <span>Upload MIDI</span>
+    </label>
+    @if (selectedFileName) {
+      <span class="file-name">{{ selectedFileName }}</span>
+      @if (isPlaying) {
+        <button class="stop-button" type="button" (click)="stopMidi()">Stop</button>
+      } @else {
+        <button class="play-button" type="button" (click)="playMidi()">Play</button>
+      }
+    }
+  </div>
+
+  <div class="piano">
+    @for (key of keys; track key.note) {
+      <div
+        class="key"
+        [class.black]="key.isBlack"
+        [class.white]="!key.isBlack"
+        [class.active]="activeKeys.has(key.note)"
+        [attr.data-note]="key.isBlack ? key.note : null"
+        [style.left.px]="key.isBlack ? pianoAudio.getBlackKeyLeft(key.note) : null"
+        (mousedown)="onKeyDown(key, $event)"
+        (mouseup)="onKeyUp(key, $event)"
+        (mouseleave)="onKeyUp(key, $event)"
+        (touchstart)="onKeyDown(key, $event)"
+        (touchend)="onKeyUp(key, $event)"
+        (touchcancel)="onKeyUp(key, $event)"
+      >
+        @if (!key.isBlack) {
+          <span class="note-label">{{ key.note }}</span>
+        }
+      </div>
+    }
+  </div>
+</div>
