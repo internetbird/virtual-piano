@@ -1,11 +1,14 @@
 import { Component, HostListener, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
-import { PianoAudioService, PianoKey } from '../../services/piano-audio.service';
+import { FormsModule } from '@angular/forms';
+import { PianoAudioService, PianoKey, Instrument } from '../../services/piano-audio.service';
 import { MidiPlayerService } from '../../services/midi-player.service';
+import { MusicNotationComponent } from '../music-notation/music-notation.component';
 import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'vp-piano',
   standalone: true,
+  imports: [FormsModule, MusicNotationComponent],
   templateUrl: './piano.component.html',
   styleUrl: './piano.component.scss'
 })
@@ -14,6 +17,8 @@ export class PianoComponent implements OnInit, OnDestroy {
   activeKeys = new Set<string>();
   selectedFileName: string | null = null;
   isPlaying = false;
+  instruments: { id: Instrument; label: string }[] = [];
+  currentInstrument: Instrument = 'acoustic-piano';
   private selectedFile: File | null = null;
   private noteSubscription: Subscription | null = null;
   private playbackCompleteSubscription: Subscription | null = null;
@@ -26,6 +31,9 @@ export class PianoComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.keys = this.pianoAudio.getKeys();
+    this.instruments = this.pianoAudio.getInstruments();
+    this.currentInstrument = this.pianoAudio.getCurrentInstrument();
+    
     this.noteSubscription = this.midiPlayer.notePlayingChanged.subscribe(
       (event) => {
         if (event.isPlaying) {
@@ -119,5 +127,10 @@ export class PianoComponent implements OnInit, OnDestroy {
     this.activeKeys.clear();
     this.cdr.markForCheck();
     this.midiPlayer.stop();
+  }
+
+  selectInstrument(instrument: Instrument): void {
+    this.currentInstrument = instrument;
+    this.pianoAudio.setInstrument(instrument);
   }
 }

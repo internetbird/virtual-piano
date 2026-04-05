@@ -6,6 +6,12 @@
   </p>
 
   <div class="controls">
+    <select class="instrument-select" [(ngModel)]="currentInstrument" (change)="selectInstrument(currentInstrument)">
+      @for (instrument of instruments; track instrument.id) {
+        <option [value]="instrument.id">{{ instrument.label }}</option>
+      }
+    </select>
+    
     <label class="file-button">
       <input
         type="file"
@@ -23,6 +29,8 @@
       }
     }
   </div>
+
+  <vp-music-notation [isPlaying]="isPlaying"></vp-music-notation>
 
   <div class="piano">
     @for (key of keys; track key.note) {

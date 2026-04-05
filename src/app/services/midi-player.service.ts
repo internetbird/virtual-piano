@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { Midi } from '@tonejs/midi';
 import { Subject } from 'rxjs';
 import { PianoAudioService } from './piano-audio.service';
+import { MusicNotationService } from './music-notation.service';
 
 interface ScheduledNote {
   timeoutId: number;
@@ -13,8 +14,12 @@ export class MidiPlayerService {
   private scheduled: ScheduledNote[] = [];
   notePlayingChanged = new Subject<{ note: string; isPlaying: boolean }>();
   playbackComplete = new Subject<void>();
+  notesLoaded = new Subject<Array<{ name: string; duration: number }>>();
 
-  constructor(private piano: PianoAudioService) {}
+  constructor(
+    private piano: PianoAudioService,
+    private notation: MusicNotationService
+  ) {}
 
   async playFile(file: File): Promise<void> {
     this.stop();
@@ -26,6 +31,32 @@ export class MidiPlayerService {
 
     if (notes.length === 0) {
       return;
+    }
+
+    // Extract valid notes for notation
+    const validNotes = notes
+      .map(note => ({
+        name: this.normalizeNoteName(note.name) || note.name,
+        duration: note.duration,
+        originalNote: note
+      }))
+      .filter(n => this.piano.hasNote(n.name));
+
+    // Convert and set notation
+    const notationNotes = this.notation.convertMidiNotesToNotation(
+      validNotes.map(n => ({ name: n.name, duration: n.duration }))
+    );
+    this.notation.setNoteStack(notationNotes);
+    this.notesLoaded.next(validNotes.map(n => ({ name: n.name, duration: n.duration })));
+
+    // Create a mapping of time to notation index for highlighting
+    const timeToNotationIndexMap = new Map<number, number>();
+    let notationIndex = 0;
+    for (let i = 0; i < notes.length; i++) {
+      if (this.normalizeNoteName(notes[i].name)) {
+        timeToNotationIndexMap.set(notes[i].time * 1000, notationIndex);
+        notationIndex++;
+      }
     }
 
     let maxEndTime = 0;
@@ -49,9 +80,16 @@ export class MidiPlayerService {
         // Emit that note is now playing
         this.notePlayingChanged.next({ note: noteName, isPlaying: true });
 
+        // Update notation highlight
+        const highlightIndex = timeToNotationIndexMap.get(delayMs);
+        if (highlightIndex !== undefined) {
+          this.notation.setCurrentNoteIndex(highlightIndex);
+        }
+
         // Stop highlighting after the note's actual duration
         const offTimeoutId = window.setTimeout(() => {
           this.notePlayingChanged.next({ note: noteName, isPlaying: false });
+          this.notation.setCurrentNoteIndex(-1); // Clear highlight
         }, durationMs);
 
         this.scheduled.push({ timeoutId: offTimeoutId });
@@ -64,6 +102,7 @@ export class MidiPlayerService {
     const completeTimeoutId = window.setTimeout(() => {
       if (this.isPlaying) {
         this.playbackComplete.next();
+        this.notation.setCurrentNoteIndex(-1); // Clear highlight
       }
     }, maxEndTime);
 

@@ -97,6 +97,34 @@
   box-shadow: 0 6px 16px rgba(78, 205, 196, 0.4);
 }
 
+.instrument-select {
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #fff;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.instrument-select:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.instrument-select:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(76, 205, 196, 0.6);
+  box-shadow: 0 0 8px rgba(76, 205, 196, 0.3);
+}
+
+.instrument-select option {
+  background: #0f3460;
+  color: #fff;
+}
+
 .piano {
   display: flex;
   position: relative;

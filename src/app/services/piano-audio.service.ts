@@ -7,9 +7,24 @@ export interface PianoKey {
   keyCode?: string;
 }
 
+export type Instrument = 'acoustic-piano' | 'electric-piano' | 'marimba' | 'strings' | 'flute' | 'clarinet';
+
+interface HarmonicProfile {
+  harmonics: { freq: number; amp: number; waveform: OscillatorType }[];
+  duration: number;
+  attackTime: number;
+  decayTime: number;
+  sustainLevel: number;
+  noiseAttack: boolean;
+  noiseAmount: number;
+  filterFreq: number;
+  filterQ: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class PianoAudioService {
   private audioContext: AudioContext | null = null;
+  private currentInstrument: Instrument = 'acoustic-piano';
   private readonly NOTE_FREQUENCIES: Record<string, number> = {
     'C2': 65.41, 'C#2': 69.30, 'D2': 73.42, 'D#2': 77.78, 'E2': 82.41, 'F2': 87.31,
     'F#2': 92.50, 'G2': 98.00, 'G#2': 103.83, 'A2': 110.00, 'A#2': 116.54, 'B2': 123.47,
@@ -31,6 +46,135 @@ export class PianoAudioService {
     'o': 'D5', '0': 'D#5', 'p': 'E5', '[': 'F5', '=': 'F#5', ']': 'G5'
   };
 
+  private getHarmonicProfile(instrument: Instrument): HarmonicProfile {
+    switch (instrument) {
+      case 'acoustic-piano':
+        return {
+          harmonics: [
+            { freq: 1, amp: 0.4, waveform: 'triangle' },
+            { freq: 2, amp: 0.25, waveform: 'sine' },
+            { freq: 3, amp: 0.15, waveform: 'sine' },
+            { freq: 4, amp: 0.1, waveform: 'sine' },
+            { freq: 5, amp: 0.08, waveform: 'sawtooth' },
+            { freq: 6, amp: 0.06, waveform: 'sawtooth' },
+            { freq: 7, amp: 0.04, waveform: 'sawtooth' },
+            { freq: 8, amp: 0.03, waveform: 'sawtooth' }
+          ],
+          duration: 2.0,
+          attackTime: 0.005,
+          decayTime: 0.1,
+          sustainLevel: 0.3,
+          noiseAttack: true,
+          noiseAmount: 0.1,
+          filterFreq: 8000,
+          filterQ: 1
+        };
+
+      case 'electric-piano':
+        return {
+          harmonics: [
+            { freq: 1, amp: 0.5, waveform: 'sine' },
+            { freq: 2, amp: 0.3, waveform: 'sine' },
+            { freq: 3, amp: 0.2, waveform: 'sine' },
+            { freq: 4, amp: 0.15, waveform: 'sine' },
+            { freq: 5, amp: 0.1, waveform: 'sine' },
+            { freq: 6, amp: 0.08, waveform: 'sine' },
+            { freq: 8, amp: 0.05, waveform: 'square' }
+          ],
+          duration: 1.5,
+          attackTime: 0.01,
+          decayTime: 0.05,
+          sustainLevel: 0.2,
+          noiseAttack: false,
+          noiseAmount: 0,
+          filterFreq: 5000,
+          filterQ: 2
+        };
+
+      case 'marimba':
+        return {
+          harmonics: [
+            { freq: 1, amp: 0.6, waveform: 'sine' },
+            { freq: 2, amp: 0.4, waveform: 'sine' },
+            { freq: 3, amp: 0.3, waveform: 'sine' },
+            { freq: 4, amp: 0.25, waveform: 'sine' },
+            { freq: 5, amp: 0.2, waveform: 'sine' },
+            { freq: 6, amp: 0.15, waveform: 'square' }
+          ],
+          duration: 0.8,
+          attackTime: 0.01,
+          decayTime: 0.15,
+          sustainLevel: 0.1,
+          noiseAttack: true,
+          noiseAmount: 0.15,
+          filterFreq: 9000,
+          filterQ: 1.5
+        };
+
+      case 'strings':
+        return {
+          harmonics: [
+            { freq: 1, amp: 0.5, waveform: 'sine' },
+            { freq: 2, amp: 0.3, waveform: 'sine' },
+            { freq: 3, amp: 0.2, waveform: 'sine' },
+            { freq: 4, amp: 0.15, waveform: 'sine' },
+            { freq: 5, amp: 0.1, waveform: 'sine' },
+            { freq: 6, amp: 0.08, waveform: 'sine' }
+          ],
+          duration: 3.0,
+          attackTime: 0.1,
+          decayTime: 0.2,
+          sustainLevel: 0.4,
+          noiseAttack: false,
+          noiseAmount: 0,
+          filterFreq: 7000,
+          filterQ: 1
+        };
+
+      case 'flute':
+        return {
+          harmonics: [
+            { freq: 1, amp: 0.6, waveform: 'sine' },
+            { freq: 2, amp: 0.2, waveform: 'sine' },
+            { freq: 3, amp: 0.15, waveform: 'sine' },
+            { freq: 4, amp: 0.1, waveform: 'sine' },
+            { freq: 5, amp: 0.08, waveform: 'sine' },
+            { freq: 6, amp: 0.05, waveform: 'sine' }
+          ],
+          duration: 2.0,
+          attackTime: 0.05,
+          decayTime: 0.1,
+          sustainLevel: 0.35,
+          noiseAttack: true,
+          noiseAmount: 0.05,
+          filterFreq: 8500,
+          filterQ: 1.2
+        };
+
+      case 'clarinet':
+        return {
+          harmonics: [
+            { freq: 1, amp: 0.6, waveform: 'sine' },
+            { freq: 3, amp: 0.3, waveform: 'sine' },
+            { freq: 5, amp: 0.18, waveform: 'sine' },
+            { freq: 7, amp: 0.12, waveform: 'sine' },
+            { freq: 9, amp: 0.08, waveform: 'sine' }
+          ],
+          duration: 2.2,
+          attackTime: 0.03,
+          decayTime: 0.12,
+          sustainLevel: 0.38,
+          noiseAttack: true,
+          noiseAmount: 0.03,
+          filterFreq: 6500,
+          filterQ: 1.3
+        };
+
+      default:
+        return this.getHarmonicProfile('acoustic-piano');
+    }
+  }
+
   init(): void {
     if (!this.audioContext) {
       this.audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
@@ -42,31 +186,115 @@ export class PianoAudioService {
     const frequency = this.NOTE_FREQUENCIES[note];
     if (!frequency || !this.audioContext) return;
 
-    const now = this.audioContext.currentTime;
+    const profile = this.getHarmonicProfile(this.currentInstrument);
+    const now = this.audioContext!.currentTime;
+    const duration = profile.duration;
 
-    // Create oscillators for richer piano-like sound
-    const osc1 = this.audioContext.createOscillator();
-    const osc2 = this.audioContext.createOscillator();
-    const gainNode = this.audioContext.createGain();
+    // Create oscillators for each harmonic
+    const oscillators: OscillatorNode[] = [];
+    const gains: GainNode[] = [];
 
-    osc1.type = 'triangle';
-    osc1.frequency.setValueAtTime(frequency, now);
-    osc2.type = 'sine';
-    osc2.frequency.setValueAtTime(frequency * 2, now);
+    profile.harmonics.forEach(harmonic => {
+      const osc = this.audioContext!.createOscillator();
+      const gain = this.audioContext!.createGain();
 
-    // Envelope: quick attack, decay, sustain
-    gainNode.gain.setValueAtTime(0, now);
-    gainNode.gain.linearRampToValueAtTime(0.3, now + 0.01);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+      osc.type = harmonic.waveform;
+      osc.frequency.setValueAtTime(frequency * harmonic.freq, now);
 
-    osc1.connect(gainNode);
-    osc2.connect(gainNode);
-    gainNode.connect(this.audioContext.destination);
+      // Detune slightly for more realistic sound (except for specific instruments)
+      if (this.currentInstrument !== 'clarinet' && this.currentInstrument !== 'strings') {
+        const detune = (Math.random() - 0.5) * 5; // ±2.5 cents
+        osc.detune.setValueAtTime(detune, now);
+      }
 
-    osc1.start(now);
-    osc2.start(now);
-    osc1.stop(now + 0.5);
-    osc2.stop(now + 0.5);
+      oscillators.push(osc);
+      gains.push(gain);
+      osc.connect(gain);
+    });
+
+    // Create noise generator if needed
+    let noiseSource: AudioBufferSourceNode | null = null;
+    let noiseGain: GainNode | null = null;
+
+    if (profile.noiseAttack) {
+      const noiseBuffer = this.audioContext!.createBuffer(1, this.audioContext!.sampleRate * 0.1, this.audioContext!.sampleRate);
+      const noiseData = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < noiseData.length; i++) {
+        noiseData[i] = (Math.random() * 2 - 1) * Math.exp(-i / (noiseData.length * 0.3));
+      }
+
+      noiseSource = this.audioContext!.createBufferSource();
+      noiseSource.buffer = noiseBuffer;
+      noiseGain = this.audioContext!.createGain();
+      noiseSource.connect(noiseGain);
+    }
+
+    // Low-pass filter
+    const filter = this.audioContext!.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(profile.filterFreq, now);
+    filter.Q.setValueAtTime(profile.filterQ, now);
+
+    // Master gain node
+    const masterGain = this.audioContext!.createGain();
+
+    // Connect everything
+    gains.forEach(gain => gain.connect(masterGain));
+    if (noiseGain) {
+      noiseGain.connect(masterGain);
+    }
+    masterGain.connect(filter);
+    filter.connect(this.audioContext!.destination);
+
+    // ADSR Envelope for harmonics
+    gains.forEach((gain, index) => {
+      const harmonic = profile.harmonics[index];
+      const attackTime = profile.attackTime + (Math.random() - 0.5) * profile.attackTime * 0.5;
+      const decayTime = profile.decayTime + (Math.random() - 0.5) * profile.decayTime * 0.5;
+      const sustainLevel = harmonic.amp * profile.sustainLevel;
+
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(harmonic.amp, now + attackTime);
+      gain.gain.exponentialRampToValueAtTime(sustainLevel, now + attackTime + decayTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+    });
+
+    // Noise envelope
+    if (noiseGain) {
+      noiseGain.gain.setValueAtTime(profile.noiseAmount, now);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+    }
+
+    // Start oscillators
+    oscillators.forEach(osc => osc.start(now));
+    if (noiseSource) {
+      noiseSource.start(now);
+    }
+
+    // Stop oscillators
+    oscillators.forEach(osc => osc.stop(now + duration));
+    if (noiseSource) {
+      noiseSource.stop(now + duration);
+    }
+  }
+
+  setInstrument(instrument: Instrument): void {
+    this.currentInstrument = instrument;
+  }
+
+  getCurrentInstrument(): Instrument {
+    return this.currentInstrument;
+  }
+
+  getInstruments(): { id: Instrument; label: string }[] {
+    return [
+      { id: 'acoustic-piano', label: 'Acoustic Piano' },
+      { id: 'electric-piano', label: 'Electric Piano' },
+      { id: 'marimba', label: 'Marimba' },
+      { id: 'strings', label: 'Strings' },
+      { id: 'flute', label: 'Flute' },
+      { id: 'clarinet', label: 'Clarinet' }
+    ];
   }
 
   hasNote(note: string): boolean {

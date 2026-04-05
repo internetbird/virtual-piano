@@ -1,0 +1,21 @@
+<div class="notation-container">
+  <div class="notation-header">
+    <h3 class="notation-title">Music Notation</h3>
+    @if (isPlaying) {
+      <span class="notation-status">Playing...</span>
+    }
+  </div>
+  
+  <canvas 
+    id="notation-canvas"
+    class="notation-canvas"
+    width="940"
+    height="200"
+  ></canvas>
+  
+  @if (noteStack.length === 0 && !isPlaying) {
+    <div class="notation-placeholder">
+      <p>Upload and play a MIDI file to see the musical notation</p>
+    </div>
+  }
+</div>
